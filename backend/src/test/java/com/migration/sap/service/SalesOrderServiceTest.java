@@ -12,7 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -88,13 +88,12 @@ class SalesOrderServiceTest {
     @Test
     @DisplayName("P3-UT05: maxRows=2, 5 results -> 2 returned")
     void testMaxRows() {
-        List<Object[]> mockData = Arrays.asList(
-                createRow("001", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("10"), "EA", "TAN", "1000", "10", "00", Date.valueOf("2024-01-15"), "SMITH"),
-                createRow("002", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("20"), "EA", "TAN", "2000", "10", "00", Date.valueOf("2024-02-20"), "JONES"),
-                createRow("003", "10", "SO", "MAT001", "Prod A", "EA", new BigDecimal("15"), "EA", "TAO", "1000", "20", "01", Date.valueOf("2024-03-10"), "BROWN"),
-                createRow("004", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("30"), "EA", "TAN", "3000", "10", "00", Date.valueOf("2024-04-05"), "DAVIS"),
-                createRow("005", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("25"), "EA", "TAN", "1000", "10", "00", Date.valueOf("2024-05-01"), "WHITE")
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(createRow("001", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("10"), "EA", "TAN", "1000", "10", "00", Date.valueOf("2024-01-15"), "SMITH"));
+        mockData.add(createRow("002", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("20"), "EA", "TAN", "2000", "10", "00", Date.valueOf("2024-02-20"), "JONES"));
+        mockData.add(createRow("003", "10", "SO", "MAT001", "Prod A", "EA", new BigDecimal("15"), "EA", "TAO", "1000", "20", "01", Date.valueOf("2024-03-10"), "BROWN"));
+        mockData.add(createRow("004", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("30"), "EA", "TAN", "3000", "10", "00", Date.valueOf("2024-04-05"), "DAVIS"));
+        mockData.add(createRow("005", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("25"), "EA", "TAN", "1000", "10", "00", Date.valueOf("2024-05-01"), "WHITE"));
 
         when(repository.findByMaterial(anyString(), eq("E"))).thenReturn(mockData);
 
@@ -107,11 +106,10 @@ class SalesOrderServiceTest {
     @Test
     @DisplayName("P3-UT06: maxRows=0 -> all returned")
     void testMaxRowsZero() {
-        List<Object[]> mockData = Arrays.asList(
-                createRow("001", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("10"), "EA", "TAN", "1000", "10", "00", Date.valueOf("2024-01-15"), "SMITH"),
-                createRow("002", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("20"), "EA", "TAN", "2000", "10", "00", Date.valueOf("2024-02-20"), "JONES"),
-                createRow("003", "10", "SO", "MAT001", "Prod A", "EA", new BigDecimal("15"), "EA", "TAO", "1000", "20", "01", Date.valueOf("2024-03-10"), "BROWN")
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(createRow("001", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("10"), "EA", "TAN", "1000", "10", "00", Date.valueOf("2024-01-15"), "SMITH"));
+        mockData.add(createRow("002", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("20"), "EA", "TAN", "2000", "10", "00", Date.valueOf("2024-02-20"), "JONES"));
+        mockData.add(createRow("003", "10", "SO", "MAT001", "Prod A", "EA", new BigDecimal("15"), "EA", "TAO", "1000", "20", "01", Date.valueOf("2024-03-10"), "BROWN"));
 
         when(repository.findByMaterial(anyString(), eq("E"))).thenReturn(mockData);
 
@@ -137,9 +135,8 @@ class SalesOrderServiceTest {
     @Test
     @DisplayName("P3-UT08: language=D -> German maktx")
     void testLanguageD() {
-        List<Object[]> mockData = Arrays.asList(
-                createRow("001", "10", "TA", "MAT001", "Fertigprodukt Alpha", "EA", new BigDecimal("10"), "EA", "TAN", "1000", "10", "00", Date.valueOf("2024-01-15"), "SMITH")
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(createRow("001", "10", "TA", "MAT001", "Fertigprodukt Alpha", "EA", new BigDecimal("10"), "EA", "TAN", "1000", "10", "00", Date.valueOf("2024-01-15"), "SMITH"));
 
         when(repository.findByMaterial(anyString(), eq("D"))).thenReturn(mockData);
 
@@ -152,10 +149,9 @@ class SalesOrderServiceTest {
     @Test
     @DisplayName("P3-UT09: count matches data.size()")
     void testCountMatchesSize() {
-        List<Object[]> mockData = Arrays.asList(
-                createRow("001", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("10"), "EA", "TAN", "1000", "10", "00", Date.valueOf("2024-01-15"), "SMITH"),
-                createRow("002", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("20"), "EA", "TAN", "2000", "10", "00", Date.valueOf("2024-02-20"), "JONES")
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(createRow("001", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("10"), "EA", "TAN", "1000", "10", "00", Date.valueOf("2024-01-15"), "SMITH"));
+        mockData.add(createRow("002", "10", "TA", "MAT001", "Prod A", "EA", new BigDecimal("20"), "EA", "TAN", "2000", "10", "00", Date.valueOf("2024-02-20"), "JONES"));
 
         when(repository.findByMaterial(anyString(), eq("E"))).thenReturn(mockData);
 

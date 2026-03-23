@@ -13,7 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -44,11 +44,10 @@ class MaterialStockServiceTest {
         request.setByPlant(true);
         request.setPlant(null);
 
-        List<Object[]> mockData = Arrays.asList(
-                new Object[]{"MAT001", "Prod A", "FERT", "EA", "1000", new BigDecimal("100.000")},
-                new Object[]{"MAT001", "Prod A", "FERT", "EA", "2000", new BigDecimal("200.000")},
-                new Object[]{"MAT002", "Prod B", "HALB", "KG", "1000", new BigDecimal("50.000")}
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(new Object[]{"MAT001", "Prod A", "FERT", "EA", "1000", new BigDecimal("100.000")});
+        mockData.add(new Object[]{"MAT001", "Prod A", "FERT", "EA", "2000", new BigDecimal("200.000")});
+        mockData.add(new Object[]{"MAT002", "Prod B", "HALB", "KG", "1000", new BigDecimal("50.000")});
 
         when(repository.findByPlantAllPlants(eq("E"), isNull(), isNull())).thenReturn(mockData);
 
@@ -66,10 +65,9 @@ class MaterialStockServiceTest {
         request.setByPlant(true);
         request.setPlant("1000");
 
-        List<Object[]> mockData = Arrays.asList(
-                new Object[]{"MAT001", "Prod A", "FERT", "EA", "1000", new BigDecimal("100.000")},
-                new Object[]{"MAT002", "Prod B", "HALB", "KG", "1000", new BigDecimal("50.000")}
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(new Object[]{"MAT001", "Prod A", "FERT", "EA", "1000", new BigDecimal("100.000")});
+        mockData.add(new Object[]{"MAT002", "Prod B", "HALB", "KG", "1000", new BigDecimal("50.000")});
 
         when(repository.findByPlantSpecific(eq("E"), eq("1000"), isNull(), isNull())).thenReturn(mockData);
 
@@ -86,10 +84,9 @@ class MaterialStockServiceTest {
         request.setByPlant(false);
         request.setPlant(null);
 
-        List<Object[]> mockData = Arrays.asList(
-                new Object[]{"MAT001", "Prod A", "FERT", "EA", new BigDecimal("300.000")},
-                new Object[]{"MAT002", "Prod B", "HALB", "KG", new BigDecimal("50.000")}
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(new Object[]{"MAT001", "Prod A", "FERT", "EA", new BigDecimal("300.000")});
+        mockData.add(new Object[]{"MAT002", "Prod B", "HALB", "KG", new BigDecimal("50.000")});
 
         when(repository.findAggregatedAllPlants(eq("E"), isNull(), isNull())).thenReturn(mockData);
 
@@ -106,9 +103,8 @@ class MaterialStockServiceTest {
         request.setByPlant(false);
         request.setPlant("1000");
 
-        List<Object[]> mockData = Arrays.asList(
-                new Object[]{"MAT001", "Prod A", "FERT", "EA", new BigDecimal("100.000")}
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(new Object[]{"MAT001", "Prod A", "FERT", "EA", new BigDecimal("100.000")});
 
         when(repository.findAggregatedSpecificPlant(eq("E"), eq("1000"), isNull(), isNull())).thenReturn(mockData);
 
@@ -125,13 +121,12 @@ class MaterialStockServiceTest {
         request.setByPlant(false);
         request.setTop(3);
 
-        List<Object[]> mockData = Arrays.asList(
-                new Object[]{"MAT001", "Prod A", "FERT", "EA", new BigDecimal("100.000")},
-                new Object[]{"MAT002", "Prod B", "HALB", "KG", new BigDecimal("500.000")},
-                new Object[]{"MAT003", "Prod C", "ROH", "L", new BigDecimal("200.000")},
-                new Object[]{"MAT004", "Prod D", "FERT", "EA", new BigDecimal("50.000")},
-                new Object[]{"MAT005", "Prod E", "FERT", "M", new BigDecimal("300.000")}
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(new Object[]{"MAT001", "Prod A", "FERT", "EA", new BigDecimal("100.000")});
+        mockData.add(new Object[]{"MAT002", "Prod B", "HALB", "KG", new BigDecimal("500.000")});
+        mockData.add(new Object[]{"MAT003", "Prod C", "ROH", "L", new BigDecimal("200.000")});
+        mockData.add(new Object[]{"MAT004", "Prod D", "FERT", "EA", new BigDecimal("50.000")});
+        mockData.add(new Object[]{"MAT005", "Prod E", "FERT", "M", new BigDecimal("300.000")});
 
         when(repository.findAggregatedAllPlants(eq("E"), isNull(), isNull())).thenReturn(mockData);
 
@@ -149,11 +144,10 @@ class MaterialStockServiceTest {
         request.setByPlant(true);
         request.setTop(0);
 
-        List<Object[]> mockData = Arrays.asList(
-                new Object[]{"MAT002", "Prod B", "HALB", "KG", "1000", new BigDecimal("50.000")},
-                new Object[]{"MAT001", "Prod A", "FERT", "EA", "2000", new BigDecimal("200.000")},
-                new Object[]{"MAT001", "Prod A", "FERT", "EA", "1000", new BigDecimal("100.000")}
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(new Object[]{"MAT002", "Prod B", "HALB", "KG", "1000", new BigDecimal("50.000")});
+        mockData.add(new Object[]{"MAT001", "Prod A", "FERT", "EA", "2000", new BigDecimal("200.000")});
+        mockData.add(new Object[]{"MAT001", "Prod A", "FERT", "EA", "1000", new BigDecimal("100.000")});
 
         when(repository.findByPlantAllPlants(eq("E"), isNull(), isNull())).thenReturn(mockData);
 
@@ -197,9 +191,8 @@ class MaterialStockServiceTest {
     void testNoText() {
         request.setByPlant(false);
 
-        List<Object[]> mockData = Arrays.asList(
-                new Object[]{"MAT003", null, "ROH", "L", new BigDecimal("500.000")}
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(new Object[]{"MAT003", null, "ROH", "L", new BigDecimal("500.000")});
 
         when(repository.findAggregatedAllPlants(eq("E"), isNull(), isNull())).thenReturn(mockData);
 
@@ -214,9 +207,8 @@ class MaterialStockServiceTest {
     void testZeroStock() {
         request.setByPlant(false);
 
-        List<Object[]> mockData = Arrays.asList(
-                new Object[]{"MAT004", "Prod D", "FERT", "EA", new BigDecimal("0.000")}
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(new Object[]{"MAT004", "Prod D", "FERT", "EA", new BigDecimal("0.000")});
 
         when(repository.findAggregatedAllPlants(eq("E"), isNull(), isNull())).thenReturn(mockData);
 
@@ -232,9 +224,8 @@ class MaterialStockServiceTest {
         request.setByPlant(false);
 
         // MAT001 has stock in multiple plants: 100 + 50 + 200 = 350
-        List<Object[]> mockData = Arrays.asList(
-                new Object[]{"MAT001", "Prod A", "FERT", "EA", new BigDecimal("350.000")}
-        );
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(new Object[]{"MAT001", "Prod A", "FERT", "EA", new BigDecimal("350.000")});
 
         when(repository.findAggregatedAllPlants(eq("E"), isNull(), isNull())).thenReturn(mockData);
 
