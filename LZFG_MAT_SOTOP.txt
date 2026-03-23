@@ -1,0 +1,39 @@
+FUNCTION-POOL ZFG_MAT_SO.                   "MESSAGE-ID ..
+
+* INCLUDE LZFG_MAT_SOD...                    " Local class definition
+
+* Local type: Output structure
+TYPES: BEGIN OF ty_out,
+         vbeln TYPE vbak-vbeln,          " Sales order
+         posnr TYPE vbap-posnr,          " Item number
+         auart TYPE vbak-auart,          " Sales doc type
+         matnr TYPE vbap-matnr,          " Material
+         maktx TYPE makt-maktx,          " Material description (by language)
+         meins TYPE mara-meins,          " Base unit of measure
+         kwmeng TYPE vbap-kwmeng,        " Order quantity
+         vrkme TYPE vbap-vrkme,          " Sales unit
+         pstyv TYPE vbap-pstyv,          " Item category
+         vkorg TYPE vbak-vkorg,          " Sales org
+         vtweg TYPE vbak-vtweg,          " Distribution channel
+         spart TYPE vbak-spart,          " Division
+         erdat TYPE vbak-erdat,          " Created on
+         ernam TYPE vbak-ernam,          " Created by
+       END OF ty_out.
+
+DATA: gt_items TYPE STANDARD TABLE OF ty_out WITH DEFAULT KEY,
+      gs_item  TYPE ty_out,
+      gt_ret   TYPE STANDARD TABLE OF bapiret2 WITH DEFAULT KEY,
+      gs_ret   TYPE bapiret2.
+
+DATA: gv_rows TYPE i.
+*----------------------------------------------------------------------*
+* Helper: add_message - push BAPIRET2 message into ET_RETURN
+*----------------------------------------------------------------------*
+DEFINE add_message.
+  CLEAR gs_ret.
+  gs_ret-type = &1.
+  gs_ret-id   = &2.
+  gs_ret-number = &3.
+  gs_ret-message = &4.
+  APPEND gs_ret TO gt_ret.
+END-OF-DEFINITION.

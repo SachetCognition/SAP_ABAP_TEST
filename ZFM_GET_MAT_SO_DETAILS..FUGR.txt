@@ -1,0 +1,119 @@
+FUNCTION ZFM_GET_MAT_SO_DETAILS.
+*"----------------------------------------------------------------------
+*"*"Local Interface:
+*"  IMPORTING
+*"     REFERENCE(IV_MATNR) TYPE  MATNR
+*"     REFERENCE(IV_VBELN) TYPE  VBELN_VA OPTIONAL
+*"     REFERENCE(IV_SPRAS) TYPE  SPRAS DEFAULT 'E'
+*"     REFERENCE(IV_MAXROWS) TYPE  I DEFAULT 0
+*"  EXPORTING
+*"     VALUE(EV_COUNT) TYPE  I
+*"     VALUE(ET_ITEMS) TYPE  ZTS_OUTPUT
+*"     VALUE(ET_RETURN) TYPE  TT_RETURN
+*"  EXCEPTIONS
+*"      INVALID_INPUT
+*"      DATA_ERROR
+*"      OTHERS
+*"----------------------------------------------------------------------
+DATA: lv_matnr TYPE matnr,
+        lv_vbeln TYPE vbeln_va,
+        lv_spras TYPE spras,
+        lv_max   TYPE i.
+
+  " Copy interface to locals (interface is implicit in SE37; here for clarity)
+  lv_matnr = iv_matnr.
+  lv_vbeln = iv_vbeln.
+  lv_spras = iv_spras.
+  lv_max   = iv_maxrows.
+
+  " Validate input
+  IF lv_matnr IS INITIAL.
+    add_message 'E' 'ZMSG' '001' 'Material (IV_MATNR) is required'.
+    RAISE invalid_input.
+  ENDIF.
+
+  " Normalize material: ALPHA IN (if MATNR is external 18/40 chars)
+  CALL FUNCTION 'CONVERSION_EXIT_MATN1_INPUT'
+    EXPORTING input  = lv_matnr
+    IMPORTING output = lv_matnr
+    EXCEPTIONS OTHERS = 1.
+
+  " Fetch data using Open SQL (S/4 compatible); VBAK/VBAP are still available
+  TRY.
+      CLEAR gt_items.
+
+      IF lv_vbeln IS INITIAL.
+        " No order filter: get all orders for material
+        SELECT a~vbeln, a~posnr, b~auart, a~matnr,
+               c~maktx, d~meins, a~kwmeng, a~vrkme, a~pstyv,
+               b~vkorg, b~vtweg, b~spart, b~erdat, b~ernam
+          FROM vbap AS a
+          INNER JOIN vbak AS b ON b~vbeln = a~vbeln
+          LEFT OUTER JOIN makt AS c ON c~matnr = a~matnr AND c~spras = @lv_spras
+          LEFT OUTER JOIN mara AS d ON d~matnr = a~matnr
+         WHERE a~matnr = @lv_matnr
+         INTO TABLE @DATA(lt_all).
+      ELSE.
+        " Specific order filter
+        SELECT a~vbeln, a~posnr, b~auart, a~matnr,
+               c~maktx, d~meins, a~kwmeng, a~vrkme, a~pstyv,
+               b~vkorg, b~vtweg, b~spart, b~erdat, b~ernam
+          FROM vbap AS a
+          INNER JOIN vbak AS b ON b~vbeln = a~vbeln
+          LEFT OUTER JOIN makt AS c ON c~matnr = a~matnr AND c~spras = @lv_spras
+          LEFT OUTER JOIN mara AS d ON d~matnr = a~matnr
+         WHERE a~matnr = @lv_matnr
+           AND a~vbeln = @lv_vbeln
+         INTO TABLE @lt_all.
+      ENDIF.
+
+      IF sy-subrc <> 0 OR lt_all IS INITIAL.
+        add_message 'S' 'ZMSG' '002' 'No sales orders found for given material/filters'.
+      ENDIF.
+
+      LOOP AT lt_all ASSIGNING FIELD-SYMBOL(<ls>).
+        CLEAR gs_item.
+        gs_item-vbeln = <ls>-vbeln.
+        gs_item-posnr = <ls>-posnr.
+        gs_item-auart = <ls>-auart.
+        gs_item-matnr = <ls>-matnr.
+        gs_item-maktx = <ls>-maktx.
+        gs_item-meins = <ls>-meins.
+        gs_item-kwmeng = <ls>-kwmeng.
+        gs_item-vrkme = <ls>-vrkme.
+        gs_item-pstyv = <ls>-pstyv.
+        gs_item-vkorg = <ls>-vkorg.
+        gs_item-vtweg = <ls>-vtweg.
+        gs_item-spart = <ls>-spart.
+        gs_item-erdat = <ls>-erdat.
+        gs_item-ernam = <ls>-ernam.
+        APPEND gs_item TO gt_items.
+      ENDLOOP.
+
+      " Optional: Top N limit
+      IF lv_max GT 0 AND lines( gt_items ) GT lv_max.
+       IF lv_max > 0.
+         lv_max = lv_max + 1.
+       ENDIF.
+       DELETE gt_items FROM lv_max TO lines( gt_items ).
+      ENDIF.
+
+      gv_rows = lines( gt_items ).
+      "add_message 'S' 'ZMSG' '000' |Rows fetched: { gv_rows }|.
+
+    CATCH cx_sy_open_sql_db INTO DATA(lx_sql).
+      "add_message 'E' 'ZMSG' '003' lx_sql->get_text( ).
+      "RAISE data_error.
+  ENDTRY.
+
+  " Move to interface tables/exports
+  et_items[] = gt_items[].
+  et_return[] = gt_ret[].
+  ev_count = gv_rows.
+
+
+
+
+
+
+ENDFUNCTION.

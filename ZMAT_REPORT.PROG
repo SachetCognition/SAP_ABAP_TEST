@@ -1,0 +1,249 @@
+*&---------------------------------------------------------------------*
+*& Report ZMAT_REPORT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZMAT_REPORT NO STANDARD PAGE HEADING.
+
+* Use tables for field references (classic style)
+TABLES: mara, makt, mard.
+
+*--------------------------------------------------------------
+* Types and data declarations
+*--------------------------------------------------------------
+TYPES: BEGIN OF ty_out,
+         matnr TYPE mara-matnr,         " Material code
+         maktx TYPE makt-maktx,         " Material description (by language)
+         mtart TYPE mara-mtart,         " Material type
+         meins TYPE mara-meins,         " Base unit of measure
+         werks TYPE mard-werks,         " Plant (blank when aggregated across all plants)
+         labst TYPE mard-labst,         " Unrestricted stock (sum)
+       END OF ty_out.
+
+DATA: gt_out TYPE STANDARD TABLE OF ty_out WITH DEFAULT KEY,
+      gs_out TYPE ty_out.
+
+* ALV reference
+DATA: go_alv TYPE REF TO cl_salv_table.
+
+*--------------------------------------------------------------
+* Selection screen
+*--------------------------------------------------------------
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
+SELECT-OPTIONS: s_matnr FOR mara-matnr,
+                s_mtart FOR mara-mtart.
+PARAMETERS: p_werks TYPE werks_d OBLIGATORY DEFAULT '',
+            p_spras TYPE spras DEFAULT sy-langu,
+            p_bywrk AS CHECKBOX DEFAULT ' ',  " If checked, show by Plant; else aggregate across all plants
+            p_top   TYPE i DEFAULT 0.         " Optional: limit output rows (0 = no limit)
+SELECTION-SCREEN END OF BLOCK b1.
+
+" Text elements (fallback if not maintained via SE38 -> Text Elements)
+INITIALIZATION.
+  "text-001 = 'Material Selection'.
+  IF p_werks IS INITIAL.  " Keep empty default to mean 'All Plants'
+    CLEAR p_werks.
+  ENDIF.
+
+*--------------------------------------------------------------
+* Start-of-selection
+*--------------------------------------------------------------
+START-OF-SELECTION.
+  PERFORM fetch_data.
+  PERFORM display_alv.
+
+*--------------------------------------------------------------
+* Form: fetch_data
+* Purpose: Read MARA/MAKT and aggregate MARD-LABST based on selection
+*--------------------------------------------------------------
+FORM fetch_data .
+  DATA: lv_show_by_plant TYPE abap_bool.
+  lv_show_by_plant = COND abap_bool( WHEN p_bywrk = 'X' THEN abap_true ELSE abap_false ).
+
+  CLEAR gt_out.
+
+  IF lv_show_by_plant = abap_true.
+    " By-Plant detail: group stock by MATNR+WERKS
+    IF p_werks IS INITIAL.
+      "All plants mode (by plant lines)
+      SELECT a~matnr,
+             b~maktx,
+             a~mtart,
+             a~meins,
+             d~werks,
+             SUM( d~labst ) AS labst
+        FROM mara AS a
+        LEFT OUTER JOIN makt AS b
+          ON b~matnr = a~matnr AND b~spras = @p_spras
+        LEFT OUTER JOIN mard AS d
+          ON d~matnr = a~matnr
+       WHERE a~matnr IN @s_matnr
+         AND a~mtart IN @s_mtart
+       GROUP BY a~matnr, b~maktx, a~mtart, a~meins, d~werks
+       INTO TABLE @DATA(lt_raw_by_plant).
+    ELSE.
+      " Specific plant detail
+      SELECT a~matnr,
+             b~maktx,
+             a~mtart,
+             a~meins,
+             @p_werks   AS werks,
+             SUM( d~labst ) AS labst
+        FROM mara AS a
+        LEFT OUTER JOIN makt AS b
+          ON b~matnr = a~matnr AND b~spras = @p_spras
+        LEFT OUTER JOIN mard AS d
+          ON d~matnr = a~matnr AND d~werks = @p_werks
+       WHERE a~matnr IN @s_matnr
+         AND a~mtart IN @s_mtart
+       GROUP BY a~matnr, b~maktx, a~mtart, a~meins
+       INTO TABLE @lt_raw_by_plant.
+    ENDIF.
+
+    LOOP AT lt_raw_by_plant ASSIGNING FIELD-SYMBOL(<ls>).
+      CLEAR gs_out.
+      gs_out-matnr = <ls>-matnr.
+      gs_out-maktx = <ls>-maktx.
+      gs_out-mtart = <ls>-mtart.
+      gs_out-meins = <ls>-meins.
+      gs_out-werks = <ls>-werks.
+      gs_out-labst = <ls>-labst.
+      APPEND gs_out TO gt_out.
+    ENDLOOP.
+  ELSE.
+    " Aggregated across plants: group stock by MATNR only
+    IF p_werks IS INITIAL.
+      SELECT a~matnr,
+             b~maktx,
+             a~mtart,
+             a~meins,
+             SUM( d~labst ) AS labst
+        FROM mara AS a
+        LEFT OUTER JOIN makt AS b
+          ON b~matnr = a~matnr AND b~spras = @p_spras
+        LEFT OUTER JOIN mard AS d
+          ON d~matnr = a~matnr
+       WHERE a~matnr IN @s_matnr
+         AND a~mtart IN @s_mtart
+       GROUP BY a~matnr, b~maktx, a~mtart, a~meins
+       INTO TABLE @DATA(lt_raw_total).
+    ELSE.
+      " Aggregate within a specific plant
+      SELECT a~matnr,
+             b~maktx,
+             a~mtart,
+             a~meins,
+             SUM( d~labst ) AS labst
+        FROM mara AS a
+        LEFT OUTER JOIN makt AS b
+          ON b~matnr = a~matnr AND b~spras = @p_spras
+        LEFT OUTER JOIN mard AS d
+          ON d~matnr = a~matnr AND d~werks = @p_werks
+       WHERE a~matnr IN @s_matnr
+         AND a~mtart IN @s_mtart
+       GROUP BY a~matnr, b~maktx, a~mtart, a~meins
+       INTO TABLE @lt_raw_total.
+    ENDIF.
+
+    LOOP AT lt_raw_total ASSIGNING FIELD-SYMBOL(<ls2>).
+      CLEAR gs_out.
+      gs_out-matnr = <ls2>-matnr.
+      gs_out-maktx = <ls2>-maktx.
+      gs_out-mtart = <ls2>-mtart.
+      gs_out-meins = <ls2>-meins.
+      IF p_werks IS INITIAL.
+        CLEAR gs_out-werks.  " Blank when across all plants
+      ELSE.
+        gs_out-werks = p_werks.
+      ENDIF.
+      gs_out-labst = <ls2>-labst.
+      APPEND gs_out TO gt_out.
+    ENDLOOP.
+  ENDIF.
+
+  " Optional top-N restriction (client-side)
+  IF p_top GT 0.
+    SORT gt_out BY labst DESCENDING matnr ASCENDING.
+    DELETE gt_out FROM p_top + 1 TO lines( gt_out ).
+  ELSE.
+    SORT gt_out BY matnr ASCENDING werks ASCENDING.
+  ENDIF.
+
+ENDFORM.                    " fetch_data
+
+*--------------------------------------------------------------
+* Form: display_alv
+* Purpose: Render output with CL_SALV_TABLE and add totals
+*--------------------------------------------------------------
+FORM display_alv .
+  IF gt_out IS INITIAL.
+    MESSAGE 'No data found for given selection' TYPE 'S'.
+    RETURN.
+  ENDIF.
+
+  TRY.
+      cl_salv_table=>factory( IMPORTING r_salv_table = go_alv
+                              CHANGING  t_table       = gt_out ).
+    CATCH cx_salv_msg INTO DATA(lx).
+      MESSAGE lx->get_text( ) TYPE 'E'.
+      RETURN.
+  ENDTRY.
+
+  " Column settings
+  DATA(lo_cols) = go_alv->get_columns( ).
+  lo_cols->set_optimize( abap_true ).
+
+  DATA(lo_col) = lo_cols->get_column( 'MATNR' ).
+  lo_col->set_short_text( 'Material' ).
+  lo_col->set_medium_text( 'Material Code' ).
+  lo_col->set_long_text( 'Material Number' ).
+
+  lo_col = lo_cols->get_column( 'MAKTX' ).
+  lo_col->set_short_text( 'Material' ).
+  lo_col->set_medium_text( 'Material Desc' ).
+  lo_col->set_long_text( 'Material Desc' ).
+
+  lo_col = lo_cols->get_column( 'MTART' ).
+  lo_col->set_short_text( 'Type' ).
+  lo_col->set_medium_text( 'Material Type' ).
+  lo_col->set_long_text( 'Material Type' ).
+
+  lo_col = lo_cols->get_column( 'MEINS' ).
+  lo_col->set_short_text( 'UoM' ).
+  lo_col->set_medium_text( 'Base UoM' ).
+  lo_col->set_long_text( 'Base Unit of Measure' ).
+
+  "IF line_exists( gt_out[ 1 ]-werks ).
+   IF gt_out IS NOT INITIAL.
+    TRY.
+        lo_col = lo_cols->get_column( 'WERKS' ).
+        lo_col->set_short_text( 'Plant' ).
+        lo_col->set_medium_text( 'Plant' ).
+        lo_col->set_long_text( 'Plant' ).
+      CATCH cx_salv_not_found.
+    ENDTRY.
+  ENDIF.
+
+  lo_col = lo_cols->get_column( 'LABST' ).
+  lo_col->set_short_text( 'Stock' ).
+  lo_col->set_medium_text( 'Unrestricted' ).
+  lo_col->set_long_text( 'Unrestricted-Use Stock' ).
+
+  " Totals (aggregate LABST)
+  DATA(lo_aggr) = go_alv->get_aggregations( ).
+  TRY.
+      lo_aggr->add_aggregation( columnname = 'LABST' ).
+    CATCH cx_salv_data_error cx_salv_not_found.
+  ENDTRY.
+
+  " Appearance
+  DATA(lo_disp) = go_alv->get_display_settings( ).
+  lo_disp->set_striped_pattern( abap_true ).
+  lo_disp->set_list_header( |Material Stock Report - { sy-datum } { sy-uzeit }| ).
+
+  " Enable Functions
+  DATA(lo_fun) = go_alv->get_functions( ).
+  lo_fun->set_all( abap_true ).
+
+  go_alv->display( ).
+ENDFORM.                    " display_alv
