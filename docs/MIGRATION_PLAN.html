@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SAP ABAP-to-Java Migration Plan &amp; Test Infrastructure</title>
+  <style>
+    :root {
+      --primary: #1a56db;
+      --primary-light: #e8effc;
+      --success: #059669;
+      --success-light: #d1fae5;
+      --warning: #d97706;
+      --warning-light: #fef3c7;
+      --danger: #dc2626;
+      --danger-light: #fee2e2;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--gray-800); line-height: 1.6; background: var(--gray-50); }
+    .container { max-width: 1280px; margin: 0 auto; padding: 20px 32px; }
+    h1 { font-size: 28px; color: var(--gray-900); margin-bottom: 4px; }
+    h2 { font-size: 22px; color: var(--gray-900); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--primary); }
+    h3 { font-size: 17px; color: var(--gray-700); margin: 24px 0 12px; }
+    p, li { font-size: 14px; color: var(--gray-700); }
+    .subtitle { font-size: 14px; color: var(--gray-600); margin-bottom: 24px; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .badge-phase { background: var(--primary-light); color: var(--primary); }
+    .badge-pass { background: var(--success-light); color: var(--success); }
+    .badge-pending { background: var(--gray-200); color: var(--gray-600); }
+    .badge-unit { background: #ede9fe; color: #7c3aed; }
+    .badge-integration { background: #fce7f3; color: #be185d; }
+    .badge-e2e { background: #fef3c7; color: #b45309; }
+    .badge-manual { background: #e0f2fe; color: #0369a1; }
+    .badge-automated { background: #d1fae5; color: #047857; }
+
+    /* Navigation */
+    nav { background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 20px; margin-bottom: 32px; }
+    nav h3 { margin-top: 0; }
+    nav ol { padding-left: 24px; }
+    nav li { margin: 6px 0; }
+    nav a { color: var(--primary); text-decoration: none; font-size: 14px; }
+    nav a:hover { text-decoration: underline; }
+
+    /* Summary cards */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+    .stat-card { background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 16px; text-align: center; }
+    .stat-card .number { font-size: 32px; font-weight: 700; color: var(--primary); }
+    .stat-card .label { font-size: 13px; color: var(--gray-600); }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--gray-200); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: var(--gray-100); color: var(--gray-700); font-weight: 600; text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--gray-200); white-space: nowrap; }
+    td { padding: 8px 12px; border-bottom: 1px solid var(--gray-100); color: var(--gray-700); vertical-align: top; }
+    tr:hover td { background: var(--gray-50); }
+    code { background: var(--gray-100); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace; color: var(--gray-800); }
+
+    /* Phase sections */
+    .phase-section { background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 24px; margin: 24px 0; }
+    .phase-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .phase-number { background: var(--primary); color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+    .phase-title { font-size: 18px; font-weight: 600; color: var(--gray-900); }
+    .phase-goal { font-size: 14px; color: var(--gray-600); margin-bottom: 16px; padding: 12px; background: var(--gray-50); border-radius: 6px; border-left: 3px solid var(--primary); }
+
+    /* Dependency graph */
+    .dep-graph { background: var(--gray-900); color: #a5f3fc; padding: 20px 24px; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; }
+
+    /* Code blocks */
+    pre { background: var(--gray-900); color: #e2e8f0; padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0; }
+    pre code { background: transparent; padding: 0; color: inherit; }
+    .kw { color: #c084fc; }
+    .str { color: #86efac; }
+    .cmt { color: #64748b; }
+
+    /* Artifact guide cards */
+    .guide-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin: 16px 0; }
+    .guide-card { background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 20px; }
+    .guide-card h4 { font-size: 15px; color: var(--gray-900); margin-bottom: 8px; }
+    .guide-card p, .guide-card li { font-size: 13px; }
+    .guide-card ol, .guide-card ul { padding-left: 20px; margin-top: 8px; }
+    .guide-card li { margin: 4px 0; }
+
+    /* Tabs */
+    .tabs { display: flex; border-bottom: 2px solid var(--gray-200); margin-bottom: 20px; }
+    .tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--gray-600); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Print */
+    @media print {
+      .container { max-width: 100%; padding: 0; }
+      .phase-section { break-inside: avoid; }
+      nav { break-after: page; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <h1>SAP ABAP-to-Java/Cloud Migration Plan</h1>
+  <p class="subtitle">
+    <strong>Repository:</strong> SachetCognition/SAP_ABAP_TEST &nbsp;|&nbsp;
+    <strong>Scope:</strong> ZFM_GET_MAT_SO_DETAILS + ZMAT_REPORT &rarr; Java/Spring Boot REST + Web UI &nbsp;|&nbsp;
+    <strong>Generated:</strong> 2026-03-23
+  </p>
+
+  <!-- Summary Stats -->
+  <div class="stats">
+    <div class="stat-card"><div class="number">70</div><div class="label">Total Test Cases</div></div>
+    <div class="stat-card"><div class="number">8</div><div class="label">Phases (0&ndash;7)</div></div>
+    <div class="stat-card"><div class="number">25</div><div class="label">Business Rules</div></div>
+    <div class="stat-card"><div class="number">3</div><div class="label">ABAP Source Files</div></div>
+    <div class="stat-card"><div class="number">14</div><div class="label">Artifact Directories</div></div>
+  </div>
+
+  <!-- Table of Contents -->
+  <nav>
+    <h3>Table of Contents</h3>
+    <ol>
+      <li><a href="#phase0">Phase 0 &mdash; Baseline Capture</a> (TC-001 &ndash; TC-010)</li>
+      <li><a href="#phase1">Phase 1 &mdash; Static Analysis &amp; Rule Extraction</a> (25 rules)</li>
+      <li><a href="#phase2">Phase 2 &mdash; Back-End Unit Tests</a> (TC-011 &ndash; TC-026)</li>
+      <li><a href="#phase3">Phase 3 &mdash; Back-End Integration Tests</a> (TC-027 &ndash; TC-036)</li>
+      <li><a href="#phase4">Phase 4 &mdash; Front-End Unit / Component Tests</a> (TC-037 &ndash; TC-046)</li>
+      <li><a href="#phase5">Phase 5 &mdash; Front-End E2E Tests</a> (TC-047 &ndash; TC-056)</li>
+      <li><a href="#phase6">Phase 6 &mdash; Cross-Validation (SAP vs. Java)</a> (TC-057 &ndash; TC-066)</li>
+      <li><a href="#phase7">Phase 7 &mdash; Non-Functional &amp; Regression</a> (TC-067 &ndash; TC-070)</li>
+      <li><a href="#matrix">Full Test Case Matrix</a></li>
+      <li><a href="#artifacts">Artifact Capture Guide</a></li>
+      <li><a href="#crossval">Cross-Validation Script</a></li>
+      <li><a href="#depgraph">Phase Dependency Graph</a></li>
+      <li><a href="#sources">ABAP Source File Index</a></li>
+    </ol>
+  </nav>
+
+  <!-- ======================================================================
+       PHASE 0
+       ====================================================================== -->
+  <div class="phase-section" id="phase0">
+    <div class="phase-header">
+      <div class="phase-number">0</div>
+      <div class="phase-title">Baseline Capture</div>
+      <span class="badge badge-manual">Manual</span>
+      <span class="badge badge-phase">10 TCs</span>
+    </div>
+    <div class="phase-goal"><strong>Goal:</strong> Record the current SAP system behaviour so every future test can be compared to an authoritative &ldquo;golden&rdquo; output.</div>
+    <p><strong>Artifacts:</strong> <code>test-artifacts/phase0-baseline/</code></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>TC ID</th><th>Test Case Name</th><th>ABAP Source Reference</th><th>Pass Criteria</th><th>Artifact</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TC-001</strong></td><td>Capture FM default output (material only)</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:45-55</code></td><td>FM returns rows for a known material; CSV exported matches SAP GUI display</td><td>CSV + screenshot</td></tr>
+          <tr><td><strong>TC-002</strong></td><td>Capture FM output with order filter</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:56-68</code></td><td>FM returns rows filtered by VBELN; CSV matches GUI</td><td>CSV + screenshot</td></tr>
+          <tr><td><strong>TC-003</strong></td><td>Capture FM output with MAXROWS limit</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:93-99</code></td><td>Row count in export equals IV_MAXROWS</td><td>CSV</td></tr>
+          <tr><td><strong>TC-004</strong></td><td>Capture FM output with language parameter</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:7,52,63</code></td><td>MAKTX column reflects requested language</td><td>CSV</td></tr>
+          <tr><td><strong>TC-005</strong></td><td>Capture FM error for missing material</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:30-33</code></td><td>BAPIRET2 contains type E, message 001</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-006</strong></td><td>Capture Report &mdash; aggregated all plants</td><td><code>ZMAT_REPORT.PROG:113-161</code></td><td>ALV grid shows blank WERKS, LABST summed across plants</td><td>Video + screenshot</td></tr>
+          <tr><td><strong>TC-007</strong></td><td>Capture Report &mdash; by-plant detail (all)</td><td><code>ZMAT_REPORT.PROG:65-112</code></td><td>ALV grid shows WERKS per row</td><td>Video + screenshot</td></tr>
+          <tr><td><strong>TC-008</strong></td><td>Capture Report &mdash; specific plant</td><td><code>ZMAT_REPORT.PROG:84-101</code></td><td>Only rows for p_werks appear</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-009</strong></td><td>Capture Report &mdash; Top-N restriction</td><td><code>ZMAT_REPORT.PROG:164-170</code></td><td>ALV shows exactly p_top rows, sorted DESC by LABST</td><td>Screenshot + CSV</td></tr>
+          <tr><td><strong>TC-010</strong></td><td>Capture Report &mdash; no data found</td><td><code>ZMAT_REPORT.PROG:179-182</code></td><td>Message &ldquo;No data found for given selection&rdquo; displayed</td><td>Screenshot</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       PHASE 1
+       ====================================================================== -->
+  <div class="phase-section" id="phase1">
+    <div class="phase-header">
+      <div class="phase-number">1</div>
+      <div class="phase-title">Static Analysis &amp; Rule Extraction</div>
+      <span class="badge badge-phase">25 Rules</span>
+    </div>
+    <div class="phase-goal"><strong>Goal:</strong> Document every business rule, data type, table join, conversion exit, and error path in the ABAP source so the Java implementation can be verified rule-by-rule.</div>
+
+    <h3>1.1 Function Module <code>ZFM_GET_MAT_SO_DETAILS</code> Rules</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rule ID</th><th>Description</th><th>Source Reference</th></tr></thead>
+        <tbody>
+          <tr><td><strong>R-FM-01</strong></td><td>IV_MATNR is mandatory; raise <code>INVALID_INPUT</code> when blank</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:30-33</code></td></tr>
+          <tr><td><strong>R-FM-02</strong></td><td>Apply ALPHA conversion (leading zeros) via <code>CONVERSION_EXIT_MATN1_INPUT</code></td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:36-39</code></td></tr>
+          <tr><td><strong>R-FM-03</strong></td><td>When IV_VBELN is initial, select all orders for material (VBAP JOIN VBAK JOIN MAKT JOIN MARA)</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:45-55</code></td></tr>
+          <tr><td><strong>R-FM-04</strong></td><td>When IV_VBELN is supplied, add AND filter on VBELN</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:56-68</code></td></tr>
+          <tr><td><strong>R-FM-05</strong></td><td>Language filter: MAKT join uses IV_SPRAS (default &lsquo;E&rsquo;)</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:7,52,63</code></td></tr>
+          <tr><td><strong>R-FM-06</strong></td><td>No-data path: set informational BAPIRET2 message (type S, number 002)</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:70-72</code></td></tr>
+          <tr><td><strong>R-FM-07</strong></td><td>Map result set to ty_out structure field-by-field</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:74-91</code>, <code>LZFG_MAT_SOTOP.txt:6-21</code></td></tr>
+          <tr><td><strong>R-FM-08</strong></td><td>MAXROWS truncation: delete rows beyond IV_MAXROWS (off-by-one: lv_max+1)</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:93-99</code></td></tr>
+          <tr><td><strong>R-FM-09</strong></td><td>Return count EV_COUNT = lines(gt_items)</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:101-102,112</code></td></tr>
+          <tr><td><strong>R-FM-10</strong></td><td>SQL exception handling: catch cx_sy_open_sql_db</td><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:104-107</code></td></tr>
+          <tr><td><strong>R-FM-11</strong></td><td>BAPIRET2 message helper macro <code>add_message</code></td><td><code>LZFG_MAT_SOTOP.txt:32-39</code></td></tr>
+          <tr><td><strong>R-FM-12</strong></td><td>Global data: gt_items, gs_item, gt_ret, gs_ret, gv_rows</td><td><code>LZFG_MAT_SOTOP.txt:23-28</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>1.2 Report <code>ZMAT_REPORT</code> Rules</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rule ID</th><th>Description</th><th>Source Reference</th></tr></thead>
+        <tbody>
+          <tr><td><strong>R-RPT-01</strong></td><td>Selection screen: s_matnr (range), s_mtart (range), p_werks (obligatory default blank), p_spras (default SY-LANGU), p_bywrk (checkbox), p_top (integer default 0)</td><td><code>ZMAT_REPORT.PROG:32-39</code></td></tr>
+          <tr><td><strong>R-RPT-02</strong></td><td>By-plant + all plants: GROUP BY MATNR, MAKTX, MTART, MEINS, WERKS</td><td><code>ZMAT_REPORT.PROG:65-101</code></td></tr>
+          <tr><td><strong>R-RPT-03</strong></td><td>By-plant + specific plant: add d~werks = @p_werks; GROUP BY without WERKS</td><td><code>ZMAT_REPORT.PROG:84-101</code></td></tr>
+          <tr><td><strong>R-RPT-04</strong></td><td>Aggregated + all plants: GROUP BY MATNR, MAKTX, MTART, MEINS; WERKS blank</td><td><code>ZMAT_REPORT.PROG:113-146</code></td></tr>
+          <tr><td><strong>R-RPT-05</strong></td><td>Aggregated + specific plant: same GROUP BY; add d~werks = @p_werks filter</td><td><code>ZMAT_REPORT.PROG:130-146</code></td></tr>
+          <tr><td><strong>R-RPT-06</strong></td><td>Top-N: SORT BY labst DESC, matnr ASC; DELETE FROM p_top+1</td><td><code>ZMAT_REPORT.PROG:165-167</code></td></tr>
+          <tr><td><strong>R-RPT-07</strong></td><td>Default sort: matnr ASC, werks ASC</td><td><code>ZMAT_REPORT.PROG:169</code></td></tr>
+          <tr><td><strong>R-RPT-08</strong></td><td>No data: display message type S &ldquo;No data found for given selection&rdquo;</td><td><code>ZMAT_REPORT.PROG:179-182</code></td></tr>
+          <tr><td><strong>R-RPT-09</strong></td><td>ALV factory using CL_SALV_TABLE</td><td><code>ZMAT_REPORT.PROG:184-190</code></td></tr>
+          <tr><td><strong>R-RPT-10</strong></td><td>Column labels configuration (MATNR, MAKTX, MTART, MEINS, WERKS, LABST)</td><td><code>ZMAT_REPORT.PROG:192-230</code></td></tr>
+          <tr><td><strong>R-RPT-11</strong></td><td>Aggregation on LABST column</td><td><code>ZMAT_REPORT.PROG:233-237</code></td></tr>
+          <tr><td><strong>R-RPT-12</strong></td><td>Display settings: striped pattern, dynamic header with date/time</td><td><code>ZMAT_REPORT.PROG:240-242</code></td></tr>
+          <tr><td><strong>R-RPT-13</strong></td><td>All ALV functions enabled</td><td><code>ZMAT_REPORT.PROG:245-246</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>1.3 Data Structures</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Structure</th><th>Fields</th><th>Source Reference</th></tr></thead>
+        <tbody>
+          <tr><td><strong>ty_out (FM)</strong></td><td>vbeln, posnr, auart, matnr, maktx, meins, kwmeng, vrkme, pstyv, vkorg, vtweg, spart, erdat, ernam</td><td><code>LZFG_MAT_SOTOP.txt:6-21</code></td></tr>
+          <tr><td><strong>ty_out (Report)</strong></td><td>matnr, maktx, mtart, meins, werks, labst</td><td><code>ZMAT_REPORT.PROG:14-21</code></td></tr>
+          <tr><td><strong>BAPIRET2 return</strong></td><td>type, id, number, message (via add_message macro)</td><td><code>LZFG_MAT_SOTOP.txt:25-26,32-39</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       PHASE 2
+       ====================================================================== -->
+  <div class="phase-section" id="phase2">
+    <div class="phase-header">
+      <div class="phase-number">2</div>
+      <div class="phase-title">Back-End Unit Tests (Function Module)</div>
+      <span class="badge badge-unit">Unit</span>
+      <span class="badge badge-phase">16 TCs</span>
+    </div>
+    <div class="phase-goal"><strong>Goal:</strong> Verify the Java/Spring Boot service layer reproduces every business rule from <code>ZFM_GET_MAT_SO_DETAILS</code> in isolation (mocked repository layer).</div>
+    <p><strong>Artifacts:</strong> <code>test-artifacts/phase2-backend/junit-reports/</code>, <code>test-artifacts/phase2-backend/postman/</code></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>TC ID</th><th>Test Case Name</th><th>ABAP Rule</th><th>Pass Criteria</th><th>Artifact</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TC-011</strong></td><td>Material required validation</td><td>R-FM-01</td><td>400 Bad Request with error body when matnr is null/empty</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-012</strong></td><td>ALPHA conversion &mdash; short material number</td><td>R-FM-02</td><td>Input &ldquo;123&rdquo; padded to &ldquo;000000000000000123&rdquo; before DB query</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-013</strong></td><td>ALPHA conversion &mdash; already padded material</td><td>R-FM-02</td><td>Input &ldquo;000000000000000123&rdquo; remains unchanged</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-014</strong></td><td>ALPHA conversion &mdash; alphanumeric material</td><td>R-FM-02</td><td>Non-numeric material (e.g., &ldquo;ABC-100&rdquo;) not zero-padded</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-015</strong></td><td>Query all orders for material (no VBELN filter)</td><td>R-FM-03</td><td>Repository called without VBELN predicate; returns all matching rows</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-016</strong></td><td>Query filtered by VBELN</td><td>R-FM-04</td><td>Repository called with VBELN predicate; only matching order returned</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-017</strong></td><td>Language filter defaults to &lsquo;E&rsquo;</td><td>R-FM-05</td><td>When spras param omitted, MAKT join uses &lsquo;E&rsquo;</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-018</strong></td><td>Language filter explicit value &lsquo;D&rsquo;</td><td>R-FM-05</td><td>MAKT description returned in German</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-019</strong></td><td>No data returns info message</td><td>R-FM-06</td><td>Response includes BAPIRET2-equivalent message type S, number 002</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-020</strong></td><td>Field mapping &mdash; all 14 fields present</td><td>R-FM-07</td><td>JSON response contains all 14 ty_out fields</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-021</strong></td><td>MAXROWS = 5 limits output</td><td>R-FM-08</td><td>Exactly 5 items returned when DB has &gt; 5</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-022</strong></td><td>MAXROWS = 0 returns all</td><td>R-FM-08</td><td>No truncation applied</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-023</strong></td><td>MAXROWS off-by-one boundary</td><td>R-FM-08</td><td>MAXROWS = N returns exactly N rows (verify ABAP lv_max+1 logic)</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-024</strong></td><td>EV_COUNT matches item count</td><td>R-FM-09</td><td><code>count</code> field in response equals array length</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-025</strong></td><td>SQL exception maps to 500</td><td>R-FM-10</td><td>Simulated DB error returns 500 with error body</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-026</strong></td><td>BAPIRET2 message structure</td><td>R-FM-11</td><td>Return messages contain type, id, number, message fields</td><td>JUnit</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       PHASE 3
+       ====================================================================== -->
+  <div class="phase-section" id="phase3">
+    <div class="phase-header">
+      <div class="phase-number">3</div>
+      <div class="phase-title">Back-End Integration Tests (Function Module)</div>
+      <span class="badge badge-integration">Integration</span>
+      <span class="badge badge-phase">10 TCs</span>
+    </div>
+    <div class="phase-goal"><strong>Goal:</strong> Verify end-to-end REST API behaviour against a real (test) database with seed data matching SAP baseline.</div>
+    <p><strong>Artifacts:</strong> <code>test-artifacts/phase3-backend/junit-reports/</code>, <code>test-artifacts/phase3-backend/postman/</code></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>TC ID</th><th>Test Case Name</th><th>ABAP Rule</th><th>Pass Criteria</th><th>Artifact</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TC-027</strong></td><td>GET /api/materials/{matnr}/sales-orders &mdash; happy path</td><td>R-FM-03, R-FM-07</td><td>200 OK; JSON matches baseline CSV (TC-001)</td><td>JUnit + Postman</td></tr>
+          <tr><td><strong>TC-028</strong></td><td>GET with ?vbeln= filter</td><td>R-FM-04</td><td>Only rows for that order returned; matches TC-002 baseline</td><td>JUnit + Postman</td></tr>
+          <tr><td><strong>TC-029</strong></td><td>GET with ?maxrows=3</td><td>R-FM-08</td><td>Exactly 3 rows; matches TC-003 baseline</td><td>JUnit + Postman</td></tr>
+          <tr><td><strong>TC-030</strong></td><td>GET with ?spras=D</td><td>R-FM-05</td><td>Descriptions in German; matches TC-004 baseline</td><td>Postman</td></tr>
+          <tr><td><strong>TC-031</strong></td><td>GET missing material</td><td>R-FM-01</td><td>400 Bad Request</td><td>Postman</td></tr>
+          <tr><td><strong>TC-032</strong></td><td>GET non-existent material</td><td>R-FM-06</td><td>200 OK with empty items + info message</td><td>Postman</td></tr>
+          <tr><td><strong>TC-033</strong></td><td>VBAK-VBAP INNER JOIN correctness</td><td>R-FM-03</td><td>No orphan items (every VBAP row has matching VBAK)</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-034</strong></td><td>MAKT LEFT JOIN &mdash; material with no description</td><td>R-FM-05</td><td>maktx is null/empty, remaining fields populated</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-035</strong></td><td>MARA LEFT JOIN &mdash; material with no master</td><td>R-FM-03</td><td>meins is null/empty, remaining fields populated</td><td>JUnit</td></tr>
+          <tr><td><strong>TC-036</strong></td><td>Seed data row count matches SAP</td><td>R-FM-09</td><td>ev_count from SAP == count from Java API for same input</td><td>JUnit</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       PHASE 4
+       ====================================================================== -->
+  <div class="phase-section" id="phase4">
+    <div class="phase-header">
+      <div class="phase-number">4</div>
+      <div class="phase-title">Front-End Unit / Component Tests (Report UI)</div>
+      <span class="badge badge-unit">Unit</span>
+      <span class="badge badge-phase">10 TCs</span>
+    </div>
+    <div class="phase-goal"><strong>Goal:</strong> Verify the web UI components that replace <code>ZMAT_REPORT</code> render correctly in isolation.</div>
+    <p><strong>Artifacts:</strong> <code>test-artifacts/phase4-frontend/screenshots/</code>, <code>test-artifacts/phase4-frontend/videos/</code></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>TC ID</th><th>Test Case Name</th><th>ABAP Rule</th><th>Pass Criteria</th><th>Artifact</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TC-037</strong></td><td>Selection screen renders all inputs</td><td>R-RPT-01</td><td>Material range, Material type range, Plant, Language, By-plant checkbox, Top-N input all visible</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-038</strong></td><td>Plant field is required</td><td>R-RPT-01</td><td>Form validation blocks submit when Plant is empty (mirrors OBLIGATORY)</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-039</strong></td><td>By-plant checkbox toggles mode</td><td>R-RPT-02, R-RPT-04</td><td>Checkbox state propagates to API call parameter</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-040</strong></td><td>Top-N input accepts 0 and positive integers</td><td>R-RPT-06</td><td>Input validation allows 0 (no limit) and rejects negative/non-numeric</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-041</strong></td><td>Data table renders column headers</td><td>R-RPT-10</td><td>Columns: Material, Material Desc, Material Type, Base UoM, Plant, Unrestricted Stock</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-042</strong></td><td>Data table striped pattern</td><td>R-RPT-12</td><td>Alternating row colours applied</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-043</strong></td><td>Data table dynamic header with date/time</td><td>R-RPT-12</td><td>Header text includes current date and time</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-044</strong></td><td>LABST aggregation footer row</td><td>R-RPT-11</td><td>Footer/total row shows SUM of LABST column</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-045</strong></td><td>No data message display</td><td>R-RPT-08</td><td>&ldquo;No data found for given selection&rdquo; shown when API returns empty</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-046</strong></td><td>Column optimize (auto-width)</td><td>R-RPT-10</td><td>Columns auto-sized to content (no truncation of MAKTX)</td><td>Screenshot</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       PHASE 5
+       ====================================================================== -->
+  <div class="phase-section" id="phase5">
+    <div class="phase-header">
+      <div class="phase-number">5</div>
+      <div class="phase-title">Front-End E2E Tests (Report UI)</div>
+      <span class="badge badge-e2e">E2E</span>
+      <span class="badge badge-phase">10 TCs</span>
+    </div>
+    <div class="phase-goal"><strong>Goal:</strong> Cypress / Playwright end-to-end tests simulating full user journeys through the migrated report UI.</div>
+    <p><strong>Artifacts:</strong> <code>test-artifacts/phase5-frontend/screenshots/</code>, <code>test-artifacts/phase5-frontend/videos/</code></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>TC ID</th><th>Test Case Name</th><th>ABAP Rule</th><th>Pass Criteria</th><th>Artifact</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TC-047</strong></td><td>E2E: Aggregated all-plants report</td><td>R-RPT-04</td><td>User leaves Plant blank, unchecks by-plant; table shows blank WERKS, LABST summed</td><td>Video + screenshot</td></tr>
+          <tr><td><strong>TC-048</strong></td><td>E2E: By-plant detail (all plants)</td><td>R-RPT-02</td><td>User checks by-plant, leaves Plant blank; table shows WERKS per row</td><td>Video + screenshot</td></tr>
+          <tr><td><strong>TC-049</strong></td><td>E2E: By-plant detail (specific plant)</td><td>R-RPT-03</td><td>User checks by-plant, enters Plant &ldquo;1000&rdquo;; only plant 1000 rows</td><td>Video + screenshot</td></tr>
+          <tr><td><strong>TC-050</strong></td><td>E2E: Aggregated specific plant</td><td>R-RPT-05</td><td>User enters Plant &ldquo;1000&rdquo;, unchecks by-plant; LABST summed for plant 1000</td><td>Video + screenshot</td></tr>
+          <tr><td><strong>TC-051</strong></td><td>E2E: Top-N = 5</td><td>R-RPT-06</td><td>Only 5 rows shown, sorted LABST DESC</td><td>Video + screenshot</td></tr>
+          <tr><td><strong>TC-052</strong></td><td>E2E: Top-N = 0 (no limit)</td><td>R-RPT-06, R-RPT-07</td><td>All rows shown, sorted MATNR ASC</td><td>Video + screenshot</td></tr>
+          <tr><td><strong>TC-053</strong></td><td>E2E: Material range filter</td><td>R-RPT-01</td><td>Only materials in range appear</td><td>Video</td></tr>
+          <tr><td><strong>TC-054</strong></td><td>E2E: Material type filter</td><td>R-RPT-01</td><td>Only materials of specified MTART appear</td><td>Video</td></tr>
+          <tr><td><strong>TC-055</strong></td><td>E2E: No data scenario</td><td>R-RPT-08</td><td>Empty state message displayed</td><td>Screenshot</td></tr>
+          <tr><td><strong>TC-056</strong></td><td>E2E: Export to Excel/CSV</td><td>R-RPT-13</td><td>ALV &ldquo;Export&rdquo; equivalent works; downloaded file matches table</td><td>Screenshot + file</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       PHASE 6
+       ====================================================================== -->
+  <div class="phase-section" id="phase6">
+    <div class="phase-header">
+      <div class="phase-number">6</div>
+      <div class="phase-title">Cross-Validation (SAP vs. Java)</div>
+      <span class="badge badge-automated">Automated</span>
+      <span class="badge badge-phase">10 TCs</span>
+    </div>
+    <div class="phase-goal"><strong>Goal:</strong> Row-by-row comparison of SAP baseline exports (Phase 0) against Java API responses to prove functional equivalence.</div>
+    <p><strong>Artifacts:</strong> <code>test-artifacts/phase6-xvalidation/diff-reports/</code>, <code>test-artifacts/phase6-xvalidation/visual/</code></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>TC ID</th><th>Test Case Name</th><th>ABAP Rule</th><th>Pass Criteria</th><th>Artifact</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TC-057</strong></td><td>Diff: FM default output vs. GET /api/materials/{matnr}/sales-orders</td><td>R-FM-03, R-FM-07</td><td>0 row differences after field-name normalization</td><td>HTML diff</td></tr>
+          <tr><td><strong>TC-058</strong></td><td>Diff: FM + VBELN filter vs. GET ?vbeln=</td><td>R-FM-04</td><td>0 row differences</td><td>HTML diff</td></tr>
+          <tr><td><strong>TC-059</strong></td><td>Diff: FM + MAXROWS vs. GET ?maxrows=</td><td>R-FM-08</td><td>Row count identical; row content matches</td><td>HTML diff</td></tr>
+          <tr><td><strong>TC-060</strong></td><td>Diff: FM + language DE vs. GET ?spras=D</td><td>R-FM-05</td><td>MAKTX values identical</td><td>HTML diff</td></tr>
+          <tr><td><strong>TC-061</strong></td><td>Diff: Report aggregated all plants vs. GET /api/materials/stock</td><td>R-RPT-04</td><td>LABST sums identical per MATNR</td><td>HTML diff</td></tr>
+          <tr><td><strong>TC-062</strong></td><td>Diff: Report by-plant vs. GET /api/materials/stock?byPlant=true</td><td>R-RPT-02</td><td>LABST values identical per MATNR+WERKS</td><td>HTML diff</td></tr>
+          <tr><td><strong>TC-063</strong></td><td>Diff: Report specific plant vs. GET /api/materials/stock?plant=1000</td><td>R-RPT-03, R-RPT-05</td><td>Values identical for plant 1000</td><td>HTML diff</td></tr>
+          <tr><td><strong>TC-064</strong></td><td>Diff: Report Top-N=10 vs. GET /api/materials/stock?topN=10</td><td>R-RPT-06</td><td>Same 10 rows in same order</td><td>HTML diff</td></tr>
+          <tr><td><strong>TC-065</strong></td><td>ALPHA conversion alignment</td><td>R-FM-02</td><td>Material numbers match after normalization (leading-zero handling)</td><td>HTML diff</td></tr>
+          <tr><td><strong>TC-066</strong></td><td>Side-by-side visual: SAP ALV vs. Web table</td><td>R-RPT-10, R-RPT-12</td><td>Visual comparison shows equivalent layout and data</td><td>Montage image</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       PHASE 7
+       ====================================================================== -->
+  <div class="phase-section" id="phase7">
+    <div class="phase-header">
+      <div class="phase-number">7</div>
+      <div class="phase-title">Non-Functional &amp; Regression</div>
+      <span class="badge badge-automated">Automated</span>
+      <span class="badge badge-phase">4 TCs</span>
+    </div>
+    <div class="phase-goal"><strong>Goal:</strong> Performance, security, and regression checks on the migrated application.</div>
+    <p><strong>Artifacts:</strong> <code>test-artifacts/phase7-nonfunctional/</code></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>TC ID</th><th>Test Case Name</th><th>ABAP Rule</th><th>Pass Criteria</th><th>Artifact</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TC-067</strong></td><td>Performance: API &lt; 2s for 1000 rows</td><td>R-FM-08</td><td>p95 response time under 2 seconds with 1000-row result set</td><td>JMeter/k6</td></tr>
+          <tr><td><strong>TC-068</strong></td><td>Performance: UI renders 1000 rows &lt; 3s</td><td>R-RPT-09</td><td>Time-to-interactive under 3 seconds</td><td>Lighthouse</td></tr>
+          <tr><td><strong>TC-069</strong></td><td>Security: SQL injection on matnr parameter</td><td>R-FM-01, R-FM-02</td><td>Malicious input rejected; no SQL error exposed</td><td>Postman</td></tr>
+          <tr><td><strong>TC-070</strong></td><td>Regression: Re-run all Phase 6 diffs after code freeze</td><td>All</td><td>0 differences on all diff reports</td><td>Combined HTML diff</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       FULL TEST CASE MATRIX
+       ====================================================================== -->
+  <h2 id="matrix">Full Test Case Matrix (70 Test Cases)</h2>
+
+  <div class="stats">
+    <div class="stat-card"><div class="number">11</div><div class="label">Manual</div></div>
+    <div class="stat-card"><div class="number">26</div><div class="label">Unit</div></div>
+    <div class="stat-card"><div class="number">10</div><div class="label">Integration</div></div>
+    <div class="stat-card"><div class="number">10</div><div class="label">E2E</div></div>
+    <div class="stat-card"><div class="number">13</div><div class="label">Automated</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>TC ID</th><th>Phase</th><th>Test Case Name</th><th>Type</th><th>ABAP Source Reference</th><th>Pass Criteria</th><th>Artifact Type</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>TC-001</td><td>0</td><td>Capture FM default output (material only)</td><td><span class="badge badge-manual">Manual</span></td><td><code>FUGR.txt:45-55</code></td><td>FM returns rows; CSV matches GUI</td><td>CSV + screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-002</td><td>0</td><td>Capture FM output with order filter</td><td><span class="badge badge-manual">Manual</span></td><td><code>FUGR.txt:56-68</code></td><td>Rows filtered by VBELN</td><td>CSV + screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-003</td><td>0</td><td>Capture FM output with MAXROWS limit</td><td><span class="badge badge-manual">Manual</span></td><td><code>FUGR.txt:93-99</code></td><td>Row count = IV_MAXROWS</td><td>CSV</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-004</td><td>0</td><td>Capture FM output with language parameter</td><td><span class="badge badge-manual">Manual</span></td><td><code>FUGR.txt:7,52,63</code></td><td>MAKTX reflects language</td><td>CSV</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-005</td><td>0</td><td>Capture FM error for missing material</td><td><span class="badge badge-manual">Manual</span></td><td><code>FUGR.txt:30-33</code></td><td>BAPIRET2 type E, msg 001</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-006</td><td>0</td><td>Capture Report &mdash; aggregated all plants</td><td><span class="badge badge-manual">Manual</span></td><td><code>PROG:113-161</code></td><td>Blank WERKS, summed LABST</td><td>Video + screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-007</td><td>0</td><td>Capture Report &mdash; by-plant detail (all)</td><td><span class="badge badge-manual">Manual</span></td><td><code>PROG:65-112</code></td><td>WERKS per row</td><td>Video + screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-008</td><td>0</td><td>Capture Report &mdash; specific plant</td><td><span class="badge badge-manual">Manual</span></td><td><code>PROG:84-101</code></td><td>Only p_werks rows</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-009</td><td>0</td><td>Capture Report &mdash; Top-N restriction</td><td><span class="badge badge-manual">Manual</span></td><td><code>PROG:164-170</code></td><td>p_top rows, LABST DESC</td><td>Screenshot + CSV</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-010</td><td>0</td><td>Capture Report &mdash; no data found</td><td><span class="badge badge-manual">Manual</span></td><td><code>PROG:179-182</code></td><td>&ldquo;No data found&rdquo; msg</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-011</td><td>2</td><td>Material required validation</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:30-33</code></td><td>400 Bad Request</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-012</td><td>2</td><td>ALPHA conversion &mdash; short material</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:36-39</code></td><td>Padded to 18 chars</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-013</td><td>2</td><td>ALPHA conversion &mdash; already padded</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:36-39</code></td><td>Unchanged</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-014</td><td>2</td><td>ALPHA conversion &mdash; alphanumeric</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:36-39</code></td><td>Not zero-padded</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-015</td><td>2</td><td>Query all orders (no VBELN filter)</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:45-55</code></td><td>All matching rows</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-016</td><td>2</td><td>Query filtered by VBELN</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:56-68</code></td><td>Only matching order</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-017</td><td>2</td><td>Language filter defaults to &lsquo;E&rsquo;</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:7,52,63</code></td><td>English description</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-018</td><td>2</td><td>Language filter explicit &lsquo;D&rsquo;</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:7,52,63</code></td><td>German description</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-019</td><td>2</td><td>No data returns info message</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:70-72</code></td><td>Type S, number 002</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-020</td><td>2</td><td>Field mapping &mdash; all 14 fields</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:74-91</code>, <code>TOP.txt:6-21</code></td><td>All 14 fields present</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-021</td><td>2</td><td>MAXROWS = 5 limits output</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:93-99</code></td><td>Exactly 5 items</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-022</td><td>2</td><td>MAXROWS = 0 returns all</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:93-99</code></td><td>No truncation</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-023</td><td>2</td><td>MAXROWS off-by-one boundary</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:93-99</code></td><td>Exactly N rows</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-024</td><td>2</td><td>EV_COUNT matches item count</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:101-102,112</code></td><td>count == array.length</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-025</td><td>2</td><td>SQL exception maps to 500</td><td><span class="badge badge-unit">Unit</span></td><td><code>FUGR.txt:104-107</code></td><td>500 with error body</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-026</td><td>2</td><td>BAPIRET2 message structure</td><td><span class="badge badge-unit">Unit</span></td><td><code>TOP.txt:32-39</code></td><td>type, id, number, message</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-027</td><td>3</td><td>GET sales-orders &mdash; happy path</td><td><span class="badge badge-integration">Integration</span></td><td><code>FUGR.txt:45-55,74-91</code></td><td>200 OK; matches TC-001</td><td>JUnit + Postman</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-028</td><td>3</td><td>GET with ?vbeln= filter</td><td><span class="badge badge-integration">Integration</span></td><td><code>FUGR.txt:56-68</code></td><td>Matches TC-002</td><td>JUnit + Postman</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-029</td><td>3</td><td>GET with ?maxrows=3</td><td><span class="badge badge-integration">Integration</span></td><td><code>FUGR.txt:93-99</code></td><td>Matches TC-003</td><td>JUnit + Postman</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-030</td><td>3</td><td>GET with ?spras=D</td><td><span class="badge badge-integration">Integration</span></td><td><code>FUGR.txt:7,52,63</code></td><td>Matches TC-004</td><td>Postman</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-031</td><td>3</td><td>GET missing material</td><td><span class="badge badge-integration">Integration</span></td><td><code>FUGR.txt:30-33</code></td><td>400 Bad Request</td><td>Postman</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-032</td><td>3</td><td>GET non-existent material</td><td><span class="badge badge-integration">Integration</span></td><td><code>FUGR.txt:70-72</code></td><td>200 OK + info message</td><td>Postman</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-033</td><td>3</td><td>VBAK-VBAP INNER JOIN correctness</td><td><span class="badge badge-integration">Integration</span></td><td><code>FUGR.txt:47-51</code></td><td>No orphan items</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-034</td><td>3</td><td>MAKT LEFT JOIN &mdash; no description</td><td><span class="badge badge-integration">Integration</span></td><td><code>FUGR.txt:52,63</code></td><td>maktx null/empty</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-035</td><td>3</td><td>MARA LEFT JOIN &mdash; no master</td><td><span class="badge badge-integration">Integration</span></td><td><code>FUGR.txt:53,64</code></td><td>meins null/empty</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-036</td><td>3</td><td>Seed data row count matches SAP</td><td><span class="badge badge-integration">Integration</span></td><td><code>FUGR.txt:101-102,112</code></td><td>Counts match</td><td>JUnit</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-037</td><td>4</td><td>Selection screen renders all inputs</td><td><span class="badge badge-unit">Unit</span></td><td><code>PROG:32-39</code></td><td>All inputs visible</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-038</td><td>4</td><td>Plant field is required</td><td><span class="badge badge-unit">Unit</span></td><td><code>PROG:35</code></td><td>Validation blocks submit</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-039</td><td>4</td><td>By-plant checkbox toggles mode</td><td><span class="badge badge-unit">Unit</span></td><td><code>PROG:37,65,113</code></td><td>Propagates to API</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-040</td><td>4</td><td>Top-N input validation</td><td><span class="badge badge-unit">Unit</span></td><td><code>PROG:38</code></td><td>Accepts 0+; rejects negative</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-041</td><td>4</td><td>Data table column headers</td><td><span class="badge badge-unit">Unit</span></td><td><code>PROG:192-230</code></td><td>All 6 columns present</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-042</td><td>4</td><td>Data table striped pattern</td><td><span class="badge badge-unit">Unit</span></td><td><code>PROG:241</code></td><td>Alternating rows</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-043</td><td>4</td><td>Dynamic header with date/time</td><td><span class="badge badge-unit">Unit</span></td><td><code>PROG:242</code></td><td>Date/time in header</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-044</td><td>4</td><td>LABST aggregation footer</td><td><span class="badge badge-unit">Unit</span></td><td><code>PROG:233-237</code></td><td>SUM of LABST</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-045</td><td>4</td><td>No data message display</td><td><span class="badge badge-unit">Unit</span></td><td><code>PROG:179-182</code></td><td>&ldquo;No data found&rdquo;</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-046</td><td>4</td><td>Column auto-width</td><td><span class="badge badge-unit">Unit</span></td><td><code>PROG:194</code></td><td>No truncation</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-047</td><td>5</td><td>E2E: Aggregated all-plants</td><td><span class="badge badge-e2e">E2E</span></td><td><code>PROG:113-161</code></td><td>Blank WERKS, summed LABST</td><td>Video + screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-048</td><td>5</td><td>E2E: By-plant detail (all)</td><td><span class="badge badge-e2e">E2E</span></td><td><code>PROG:65-112</code></td><td>WERKS per row</td><td>Video + screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-049</td><td>5</td><td>E2E: By-plant (specific)</td><td><span class="badge badge-e2e">E2E</span></td><td><code>PROG:84-101</code></td><td>Only plant 1000</td><td>Video + screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-050</td><td>5</td><td>E2E: Aggregated specific plant</td><td><span class="badge badge-e2e">E2E</span></td><td><code>PROG:130-146</code></td><td>Summed for plant 1000</td><td>Video + screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-051</td><td>5</td><td>E2E: Top-N = 5</td><td><span class="badge badge-e2e">E2E</span></td><td><code>PROG:165-167</code></td><td>5 rows, LABST DESC</td><td>Video + screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-052</td><td>5</td><td>E2E: Top-N = 0 (no limit)</td><td><span class="badge badge-e2e">E2E</span></td><td><code>PROG:168-169</code></td><td>All rows, MATNR ASC</td><td>Video + screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-053</td><td>5</td><td>E2E: Material range filter</td><td><span class="badge badge-e2e">E2E</span></td><td><code>PROG:33</code></td><td>Only materials in range</td><td>Video</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-054</td><td>5</td><td>E2E: Material type filter</td><td><span class="badge badge-e2e">E2E</span></td><td><code>PROG:34</code></td><td>Only specified MTART</td><td>Video</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-055</td><td>5</td><td>E2E: No data scenario</td><td><span class="badge badge-e2e">E2E</span></td><td><code>PROG:179-182</code></td><td>Empty state message</td><td>Screenshot</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-056</td><td>5</td><td>E2E: Export to Excel/CSV</td><td><span class="badge badge-e2e">E2E</span></td><td><code>PROG:245-246</code></td><td>File matches table</td><td>Screenshot + file</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-057</td><td>6</td><td>Diff: FM default vs. API</td><td><span class="badge badge-automated">Automated</span></td><td><code>FUGR.txt:45-55,74-91</code></td><td>0 differences</td><td>HTML diff</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-058</td><td>6</td><td>Diff: FM + VBELN vs. API</td><td><span class="badge badge-automated">Automated</span></td><td><code>FUGR.txt:56-68</code></td><td>0 differences</td><td>HTML diff</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-059</td><td>6</td><td>Diff: FM + MAXROWS vs. API</td><td><span class="badge badge-automated">Automated</span></td><td><code>FUGR.txt:93-99</code></td><td>Counts &amp; content match</td><td>HTML diff</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-060</td><td>6</td><td>Diff: FM + language DE vs. API</td><td><span class="badge badge-automated">Automated</span></td><td><code>FUGR.txt:7,52,63</code></td><td>MAKTX identical</td><td>HTML diff</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-061</td><td>6</td><td>Diff: Report aggregated vs. API</td><td><span class="badge badge-automated">Automated</span></td><td><code>PROG:113-161</code></td><td>LABST sums identical</td><td>HTML diff</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-062</td><td>6</td><td>Diff: Report by-plant vs. API</td><td><span class="badge badge-automated">Automated</span></td><td><code>PROG:65-112</code></td><td>LABST per MATNR+WERKS</td><td>HTML diff</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-063</td><td>6</td><td>Diff: Report specific plant vs. API</td><td><span class="badge badge-automated">Automated</span></td><td><code>PROG:84-101,130-146</code></td><td>Values identical</td><td>HTML diff</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-064</td><td>6</td><td>Diff: Report Top-N=10 vs. API</td><td><span class="badge badge-automated">Automated</span></td><td><code>PROG:165-167</code></td><td>Same 10 rows, same order</td><td>HTML diff</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-065</td><td>6</td><td>ALPHA conversion alignment</td><td><span class="badge badge-automated">Automated</span></td><td><code>FUGR.txt:36-39</code></td><td>Leading-zero normalized</td><td>HTML diff</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-066</td><td>6</td><td>Side-by-side visual comparison</td><td><span class="badge badge-manual">Manual</span></td><td><code>PROG:192-246</code></td><td>Equivalent layout</td><td>Montage image</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-067</td><td>7</td><td>Performance: API &lt; 2s / 1000 rows</td><td><span class="badge badge-automated">Automated</span></td><td><code>FUGR.txt:93-99</code></td><td>p95 &lt; 2s</td><td>JMeter/k6</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-068</td><td>7</td><td>Performance: UI &lt; 3s / 1000 rows</td><td><span class="badge badge-automated">Automated</span></td><td><code>PROG:184-248</code></td><td>TTI &lt; 3s</td><td>Lighthouse</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-069</td><td>7</td><td>Security: SQL injection</td><td><span class="badge badge-automated">Automated</span></td><td><code>FUGR.txt:30-33,36-39</code></td><td>Input rejected</td><td>Postman</td><td><span class="badge badge-pending">--</span></td></tr>
+        <tr><td>TC-070</td><td>7</td><td>Regression: Full Phase 6 re-run</td><td><span class="badge badge-automated">Automated</span></td><td>All rules</td><td>0 differences</td><td>Combined HTML diff</td><td><span class="badge badge-pending">--</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ======================================================================
+       ARTIFACT CAPTURE GUIDE
+       ====================================================================== -->
+  <h2 id="artifacts">Artifact Capture Guide</h2>
+
+  <div class="guide-cards">
+    <div class="guide-card">
+      <h4>1. SAP GUI Screenshots</h4>
+      <p><strong>Phases:</strong> 0, 4</p>
+      <ol>
+        <li>Navigate to the target transaction / report output in SAP GUI</li>
+        <li>Press <strong>Ctrl+Shift+PrintScreen</strong> (or menu <em>System &gt; List &gt; Save &gt; Local File</em>)</li>
+        <li>Save as <code>.png</code></li>
+        <li>Rename: <code>TC-XXX_description_YYYYMMDD.png</code></li>
+        <li>Place in <code>test-artifacts/phase0-baseline/screenshots/</code></li>
+      </ol>
+      <p><em>Always capture full ALV grid including totals row and selection screen.</em></p>
+    </div>
+
+    <div class="guide-card">
+      <h4>2. SAP GUI Video (OBS Studio)</h4>
+      <p><strong>Phases:</strong> 0, 5</p>
+      <ol>
+        <li>Download <a href="https://obsproject.com/" target="_blank">OBS Studio</a></li>
+        <li>Source: <em>Window Capture</em> &gt; SAP GUI window</li>
+        <li>Output: <code>.mp4</code> (H.264) to <code>test-artifacts/phase0-baseline/videos/</code></li>
+        <li>Record full user journey: selection &rarr; execute &rarr; scroll ALV &rarr; totals</li>
+      </ol>
+    </div>
+
+    <div class="guide-card">
+      <h4>3. JUnit Reports (Maven Surefire)</h4>
+      <p><strong>Phases:</strong> 2, 3</p>
+      <pre><code>&lt;plugin&gt;
+  &lt;artifactId&gt;maven-surefire-plugin&lt;/artifactId&gt;
+  &lt;version&gt;3.2.5&lt;/version&gt;
+  &lt;configuration&gt;
+    &lt;reportsDirectory&gt;
+      ${project.basedir}/test-artifacts/
+        phase2-backend/junit-reports
+    &lt;/reportsDirectory&gt;
+  &lt;/configuration&gt;
+&lt;/plugin&gt;</code></pre>
+      <p>Run: <code>mvn verify --batch-mode</code></p>
+    </div>
+
+    <div class="guide-card">
+      <h4>4. Postman Collections</h4>
+      <p><strong>Phases:</strong> 2, 3</p>
+      <ol>
+        <li>Right-click collection &gt; <strong>Export</strong> (v2.1 format)</li>
+        <li>Save to <code>test-artifacts/phase3-backend/postman/</code></li>
+        <li>CLI alternative: <code>newman run collection.json --reporters cli,json --reporter-json-export results.json</code></li>
+      </ol>
+    </div>
+
+    <div class="guide-card">
+      <h4>5. Cypress / Playwright</h4>
+      <p><strong>Phases:</strong> 4, 5</p>
+      <pre><code><span class="cmt">// cypress.config.ts</span>
+<span class="kw">export default</span> defineConfig({
+  e2e: {
+    <span class="str">video: true</span>,
+    <span class="str">screenshotOnRunFailure: true</span>,
+    videosFolder:
+      <span class="str">'test-artifacts/phase5-frontend/videos'</span>,
+    screenshotsFolder:
+      <span class="str">'test-artifacts/phase5-frontend/screenshots'</span>,
+  }
+});</code></pre>
+    </div>
+
+    <div class="guide-card">
+      <h4>6. Cross-Validation Diff Reports</h4>
+      <p><strong>Phase:</strong> 6</p>
+      <pre><code><span class="cmt"># Node.js</span>
+node scripts/cross-validate.js \
+  --sap-csv baseline.csv \
+  --api-url http://localhost:8080/api/... \
+  --output diff-report.html
+
+<span class="cmt"># Python</span>
+python scripts/cross_validate.py \
+  --sap-csv baseline.csv \
+  --api-url http://localhost:8080/api/... \
+  --output diff-report.html</code></pre>
+    </div>
+
+    <div class="guide-card">
+      <h4>7. Side-by-Side Visual (ImageMagick)</h4>
+      <p><strong>Phase:</strong> 6</p>
+      <pre><code>montage \
+  sap-screenshot.png \
+  web-screenshot.png \
+  -tile 2x1 \
+  -geometry +10+10 \
+  -title "SAP ALV vs. Web UI" \
+  side-by-side.png</code></pre>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       CROSS-VALIDATION SCRIPT
+       ====================================================================== -->
+  <h2 id="crossval">Cross-Validation Script (Phase 6)</h2>
+
+  <h3>Field Name Mapping &mdash; Function Module <code>ty_out</code></h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>SAP Field</th><th>Java Field</th><th>Type</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>VBELN</td><td>salesOrderNumber</td><td>String</td><td>Sales Document Number</td></tr>
+        <tr><td>POSNR</td><td>itemNumber</td><td>String</td><td>Leading zeros</td></tr>
+        <tr><td>AUART</td><td>salesDocumentType</td><td>String</td><td>e.g., &ldquo;OR&rdquo;</td></tr>
+        <tr><td>MATNR</td><td>materialNumber</td><td>String</td><td><strong>ALPHA conversion</strong></td></tr>
+        <tr><td>MAKTX</td><td>materialDescription</td><td>String</td><td>Language-dependent</td></tr>
+        <tr><td>MEINS</td><td>baseUnitOfMeasure</td><td>String</td><td>e.g., &ldquo;EA&rdquo;</td></tr>
+        <tr><td>KWMENG</td><td>orderQuantity</td><td>Decimal</td><td></td></tr>
+        <tr><td>VRKME</td><td>salesUnit</td><td>String</td><td></td></tr>
+        <tr><td>PSTYV</td><td>itemCategory</td><td>String</td><td>e.g., &ldquo;TAN&rdquo;</td></tr>
+        <tr><td>VKORG</td><td>salesOrganization</td><td>String</td><td></td></tr>
+        <tr><td>VTWEG</td><td>distributionChannel</td><td>String</td><td></td></tr>
+        <tr><td>SPART</td><td>division</td><td>String</td><td></td></tr>
+        <tr><td>ERDAT</td><td>createdDate</td><td>Date</td><td>YYYYMMDD &rarr; ISO 8601</td></tr>
+        <tr><td>ERNAM</td><td>createdBy</td><td>String</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Field Name Mapping &mdash; Report <code>ty_out</code></h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>SAP Field</th><th>Java Field</th><th>Type</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>MATNR</td><td>materialNumber</td><td>String</td><td><strong>ALPHA conversion</strong></td></tr>
+        <tr><td>MAKTX</td><td>materialDescription</td><td>String</td><td>Language-dependent</td></tr>
+        <tr><td>MTART</td><td>materialType</td><td>String</td><td>e.g., &ldquo;FERT&rdquo;</td></tr>
+        <tr><td>MEINS</td><td>baseUnitOfMeasure</td><td>String</td><td></td></tr>
+        <tr><td>WERKS</td><td>plant</td><td>String</td><td>Blank when aggregated</td></tr>
+        <tr><td>LABST</td><td>unrestrictedStock</td><td>Decimal</td><td>SUM of storage location stock</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>ALPHA Conversion Normalization</h3>
+  <p>Source: <code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt:36-39</code></p>
+  <pre><code><span class="cmt">// JavaScript</span>
+<span class="kw">function</span> normalizeAlpha(value) {
+  <span class="kw">if</span> (!value) <span class="kw">return</span> <span class="str">''</span>;
+  <span class="kw">const</span> stripped = String(value).replace(<span class="str">/^0+/</span>, <span class="str">''</span>);
+  <span class="kw">return</span> stripped || <span class="str">'0'</span>;
+}
+
+<span class="cmt"># Python</span>
+<span class="kw">def</span> normalize_alpha(value: str) -> str:
+    <span class="kw">if not</span> value: <span class="kw">return</span> <span class="str">''</span>
+    stripped = str(value).lstrip(<span class="str">'0'</span>)
+    <span class="kw">return</span> stripped <span class="kw">or</span> <span class="str">'0'</span></code></pre>
+
+  <!-- ======================================================================
+       DEPENDENCY GRAPH
+       ====================================================================== -->
+  <h2 id="depgraph">Phase Dependency Graph</h2>
+  <div class="dep-graph">Phase 0 (Baseline Capture)
+    |
+Phase 1 (Static Analysis &amp; Rule Extraction)
+    |
+    +----&gt; Phase 2 (Back-End Unit) --------&gt; Phase 3 (Back-End Integration)
+    |                                                |
+    +----&gt; Phase 4 (Front-End Unit) ------&gt; Phase 5 (Front-End E2E)
+                                                     |
+                                           Phase 6 (Cross-Validation)
+                                                     |
+                                           Phase 7 (Non-Functional &amp; Regression)</div>
+
+  <!-- ======================================================================
+       SOURCE FILE INDEX
+       ====================================================================== -->
+  <h2 id="sources">ABAP Source File Index</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>Description</th><th>Key Lines</th></tr></thead>
+      <tbody>
+        <tr><td><code>ZFM_GET_MAT_SO_DETAILS..FUGR.txt</code></td><td>Function Module &mdash; Sales Order details by material</td><td>L1-119: full FM body</td></tr>
+        <tr><td><code>LZFG_MAT_SOTOP.txt</code></td><td>Function Group top include &mdash; data types &amp; globals</td><td>L1-40: ty_out, gt_items, BAPIRET2, add_message macro</td></tr>
+        <tr><td><code>LZFG_MAT_SOUXX.txt</code></td><td>Function Group include registry</td><td>L5-6: includes ZFM_GET_MAT_SO_DETAILS</td></tr>
+        <tr><td><code>ZMAT_REPORT.PROG</code></td><td>Material Stock Report with ALV</td><td>L1-250: full report</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ======================================================================
+       FOOTER
+       ====================================================================== -->
+  <hr style="margin-top: 48px; border: none; border-top: 1px solid var(--gray-200);">
+  <p style="text-align: center; font-size: 12px; color: var(--gray-600); margin-top: 16px;">
+    Generated 2026-03-23 &nbsp;|&nbsp; SAP ABAP-to-Java Migration Plan &nbsp;|&nbsp; SachetCognition/SAP_ABAP_TEST
+  </p>
+
+</div>
+</body>
+</html>

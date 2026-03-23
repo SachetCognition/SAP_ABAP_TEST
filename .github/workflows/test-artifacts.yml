@@ -25,8 +25,8 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Run Maven tests
-        run: mvn test --batch-mode --fail-at-end
+      - name: Run Maven unit + integration tests
+        run: mvn verify --batch-mode --fail-at-end
         continue-on-error: true
 
       - name: Upload JUnit reports (Phase 2)
@@ -145,9 +145,15 @@ jobs:
       - name: Run cross-validation script
         run: |
           if [ -f scripts/cross-validate.js ]; then
-            node scripts/cross-validate.js \
-              --sap-csv test-artifacts/phase0-baseline/csv-exports/ \
-              --output test-artifacts/phase6-xvalidation/diff-reports/
+            # Run diff for each baseline CSV against the Java API
+            for csv_file in test-artifacts/phase0-baseline/csv-exports/*.csv; do
+              [ -f "$csv_file" ] || continue
+              basename=$(basename "$csv_file" .csv)
+              node scripts/cross-validate.js \
+                --sap-csv "$csv_file" \
+                --api-url "${API_BASE_URL:-http://localhost:8080}/api/materials/sales-orders" \
+                --output "test-artifacts/phase6-xvalidation/diff-reports/${basename}_diff.html"
+            done
           else
             echo "Cross-validation script not yet implemented -- skipping"
           fi
