@@ -1,0 +1,13 @@
+nav a {
+  color: white;
+  text-decoration: none;
+  margin-left: 8px;
+}
+
+nav a.active-link {
+  border-bottom: 2px solid white;
+}
+
+.toolbar-spacer {
+  flex: 1 1 auto;
+}

@@ -1,0 +1,30 @@
+/* Striped row styling (replaces set_striped_pattern at ZMAT_REPORT.PROG line 241) */
+:host ::ng-deep .ag-row-even {
+  background-color: #f5f5f5;
+}
+
+:host ::ng-deep .ag-row-odd {
+  background-color: #ffffff;
+}
+
+:host ::ng-deep .ag-row-pinned {
+  font-weight: bold;
+  background-color: #e0e0e0;
+}
+
+.by-plant-checkbox {
+  margin-bottom: 10px;
+  align-self: center;
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.button-row button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
