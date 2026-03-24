@@ -1,0 +1,64 @@
+<div class="container">
+  <h2>Sales Order Details</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Material Number *</mat-label>
+        <input matInput formControlName="matnr" placeholder="e.g. MAT001 or 123">
+        <mat-error *ngIf="form.get('matnr')?.hasError('required')">Material is required</mat-error>
+        <mat-hint>Maps to IV_MATNR (ALPHA conversion applied)</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Sales Order</mat-label>
+        <input matInput formControlName="vbeln" placeholder="e.g. 0000000001">
+        <mat-hint>Optional: Maps to IV_VBELN</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Language</mat-label>
+        <mat-select formControlName="language">
+          <mat-option *ngFor="let lang of languages" [value]="lang.value">
+            {{ lang.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Max Rows</mat-label>
+        <input matInput type="number" formControlName="maxRows" min="0">
+        <mat-hint>0 = no limit</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <div class="button-row">
+      <button mat-raised-button color="primary" type="submit">
+        <mat-icon>search</mat-icon> Search Orders
+      </button>
+    </div>
+  </form>
+
+  <!-- Messages area (replaces BAPIRET2 pattern) -->
+  <div *ngFor="let msg of messages"
+       class="message-area"
+       [ngClass]="{
+         'error': msg.type === 'E',
+         'success': msg.type === 'S',
+         'info': msg.type === 'I' || msg.type === 'W'
+       }">
+    [{{ msg.type }}] {{ msg.message }}
+  </div>
+
+  <!-- AG Grid with 14 columns matching ty_out from LZFG_MAT_SOTOP.txt -->
+  <div class="grid-container ag-theme-alpine">
+    <ag-grid-angular
+      style="width: 100%; height: 100%;"
+      [rowData]="rowData"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      (gridReady)="onGridReady($event)"
+      [animateRows]="true">
+    </ag-grid-angular>
+  </div>
+</div>

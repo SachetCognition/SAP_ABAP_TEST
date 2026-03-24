@@ -1,0 +1,49 @@
+:host ::ng-deep .ag-row-even {
+  background-color: #f5f7fa;
+}
+
+:host ::ng-deep .ag-row-odd {
+  background-color: #ffffff;
+}
+
+:host ::ng-deep .ag-header {
+  background-color: #3949ab;
+  color: white;
+}
+
+:host ::ng-deep .ag-header-cell-text {
+  color: white;
+  font-weight: 500;
+}
+
+:host ::ng-deep .ag-header-cell-menu-button .ag-icon {
+  color: rgba(255,255,255,0.7);
+}
+
+:host ::ng-deep .ag-cell {
+  padding: 4px 12px;
+  line-height: 36px;
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.button-row button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+h2 {
+  font-size: 20px;
+  font-weight: 500;
+  color: #1a237e;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #c5cae9;
+}

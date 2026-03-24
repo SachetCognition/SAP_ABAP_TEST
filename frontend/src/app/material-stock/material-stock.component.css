@@ -1,0 +1,52 @@
+/* Striped row styling (replaces set_striped_pattern at ZMAT_REPORT.PROG line 241) */
+:host ::ng-deep .ag-row-even {
+  background-color: #f5f7fa;
+}
+
+:host ::ng-deep .ag-row-odd {
+  background-color: #ffffff;
+}
+
+:host ::ng-deep .ag-row-pinned {
+  font-weight: 600;
+  background-color: #e8eaf6 !important;
+  border-top: 2px solid #7986cb;
+}
+
+:host ::ng-deep .ag-header {
+  background-color: #3949ab;
+  color: white;
+}
+
+:host ::ng-deep .ag-header-cell-text {
+  color: white;
+  font-weight: 500;
+}
+
+:host ::ng-deep .ag-header-cell-menu-button .ag-icon {
+  color: rgba(255,255,255,0.7);
+}
+
+:host ::ng-deep .ag-cell {
+  padding: 4px 12px;
+  line-height: 36px;
+}
+
+.by-plant-checkbox {
+  align-self: center;
+  padding-top: 4px;
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.button-row button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
