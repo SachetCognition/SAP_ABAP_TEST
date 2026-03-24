@@ -47,11 +47,11 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- H2 for tests -->
+        <!-- H2 for tests and local dev -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Flyway -->

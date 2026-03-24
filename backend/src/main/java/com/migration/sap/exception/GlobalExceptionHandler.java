@@ -1,7 +1,7 @@
 package com.migration.sap.exception;
 
+import com.migration.sap.dto.ApiErrorResponse;
 import com.migration.sap.dto.ApiMessage;
-import com.migration.sap.dto.SalesOrderResponse;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,11 +19,9 @@ public class GlobalExceptionHandler {
      * Replaces ABAP RAISE invalid_input.
      */
     @ExceptionHandler(InvalidInputException.class)
-    public ResponseEntity<SalesOrderResponse> handleInvalidInput(InvalidInputException ex) {
+    public ResponseEntity<ApiErrorResponse> handleInvalidInput(InvalidInputException ex) {
         ApiMessage msg = new ApiMessage("E", "ZMSG", "001", ex.getMessage());
-        SalesOrderResponse response = new SalesOrderResponse();
-        response.setMessages(Collections.singletonList(msg));
-        response.setCount(0);
+        ApiErrorResponse response = new ApiErrorResponse(0, Collections.singletonList(msg));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
@@ -32,11 +30,9 @@ public class GlobalExceptionHandler {
      * Replaces cx_sy_open_sql_db catch at FUGR lines 104-107.
      */
     @ExceptionHandler(DataAccessException.class)
-    public ResponseEntity<SalesOrderResponse> handleDataAccess(DataAccessException ex) {
-        ApiMessage msg = new ApiMessage("E", "ZMSG", "003", "Database error: " + ex.getMostSpecificCause().getMessage());
-        SalesOrderResponse response = new SalesOrderResponse();
-        response.setMessages(Collections.singletonList(msg));
-        response.setCount(0);
+    public ResponseEntity<ApiErrorResponse> handleDataAccess(DataAccessException ex) {
+        ApiMessage msg = new ApiMessage("E", "ZMSG", "003", "An internal database error occurred. Please contact support.");
+        ApiErrorResponse response = new ApiErrorResponse(0, Collections.singletonList(msg));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
@@ -44,15 +40,13 @@ public class GlobalExceptionHandler {
      * Handle validation exceptions -> HTTP 400.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<SalesOrderResponse> handleValidation(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
                 .reduce((a, b) -> a + "; " + b)
                 .orElse("Validation error");
         ApiMessage msg = new ApiMessage("E", "ZMSG", "004", message);
-        SalesOrderResponse response = new SalesOrderResponse();
-        response.setMessages(Collections.singletonList(msg));
-        response.setCount(0);
+        ApiErrorResponse response = new ApiErrorResponse(0, Collections.singletonList(msg));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }
