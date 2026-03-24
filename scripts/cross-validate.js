@@ -53,7 +53,7 @@ const FIELD_MAP = {
 function parseCsv(filePath) {
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.trim().split('\n');
-  if (lines.length < 2) return [];
+  if (lines.length < 2) return { headers: [], rows: [] };
 
   const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
   const rows = [];
@@ -124,8 +124,8 @@ function normalizeValue(value, fieldName) {
  */
 function fetchApi(endpoint) {
   return new Promise((resolve, reject) => {
-    const url = new URL(endpoint, API_BASE);
-    http.get(url.toString(), (res) => {
+    const url = API_BASE + endpoint;
+    http.get(url, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
